@@ -13,6 +13,7 @@
     "sourceMap": true,
     "moduleResolution": "node",
     "experimentalDecorators": true,
+    "ignoreDeprecations": "6.0",
     "emitDecoratorMetadata": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
