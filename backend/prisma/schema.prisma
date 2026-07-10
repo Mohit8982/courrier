@@ -1,0 +1,105 @@
+// Prisma schema for Multi-Courier Integration Platform
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ShipmentStatus {
+  CREATED
+  PICKED_UP
+  IN_TRANSIT
+  DELIVERED
+  CANCELLED
+  FAILED
+}
+
+enum BatchStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  PARTIAL
+  FAILED
+}
+
+enum AuthType {
+  API_KEY
+  BEARER_TOKEN
+  BASIC_AUTH
+  USERNAME_PASSWORD
+}
+
+model Courier {
+  id                 Int      @id @default(autoincrement())
+  name               String   @unique
+  baseUrl            String
+  authenticationType AuthType
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  orders Order[]
+
+  @@map("couriers")
+}
+
+model Order {
+  id              Int             @id @default(autoincrement())
+  orderId         String          @unique
+  courierId       Int
+  courier         Courier         @relation(fields: [courierId], references: [id])
+  courierOrderId  String?
+  trackingNumber  String?
+  status          ShipmentStatus  @default(CREATED)
+  requestPayload  Json
+  responsePayload Json?
+  batchId         String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  tracking TrackingHistory[]
+
+  @@index([orderId])
+  @@index([trackingNumber])
+  @@index([courierOrderId])
+  @@index([batchId])
+  @@index([status])
+  @@map("orders")
+}
+
+model TrackingHistory {
+  id          Int            @id @default(autoincrement())
+  orderId     Int
+  order       Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status      ShipmentStatus
+  description String?
+  location    String?
+  eventTime   DateTime
+  metadata    Json?
+  createdAt   DateTime       @default(now())
+
+  @@index([orderId])
+  @@index([eventTime])
+  @@map("tracking_history")
+}
+
+model BatchJob {
+  id           Int         @id @default(autoincrement())
+  batchId      String      @unique
+  totalOrders  Int
+  successCount Int         @default(0)
+  failedCount  Int         @default(0)
+  status       BatchStatus @default(PENDING)
+  results      Json        @default("[]")
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([batchId])
+  @@index([status])
+  @@map("batch_jobs")
+}
